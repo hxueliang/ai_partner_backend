@@ -152,6 +152,22 @@ def chat(request: ChatRequest):
     return ApiResponse(message="互AI交互成功", data=ai_response_message)
 
 
+# 加载会话列表
+@app.get("/api/sessions")
+def get_session_list():
+    if not os.path.exists(SESSION_DIR):
+        return ApiResponse(message="加载会话列表成功", data=[])
+
+    session_list = []
+
+    for filename in os.listdir(SESSION_DIR):
+        session_list.append(filename[:-5])
+
+    session_list.sort(reverse=True)
+
+    return ApiResponse(message="加载会话列表成功", data=session_list)
+
+
 if __name__ == "__main__":
     import uvicorn
 
