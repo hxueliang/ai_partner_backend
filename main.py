@@ -141,6 +141,8 @@ def chat(request: ChatRequest):
     # 去除系统提示词后，再存
     messages.pop(0)
     session_data["message"] = messages
+    session_data["nick_name"] = request.nick_name
+    session_data["nature"] = request.nature
 
     print(f'------> 存入会话文件的message：{messages}')
 
