@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+from tokenize import endpats
 from typing import Any
 from openai import OpenAI
 from fastapi import FastAPI
@@ -109,10 +110,21 @@ async def create_session(request: CreateSessionRequest):
 def chat(request: ChatRequest):
     print("互AI交互", request)
 
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT_TEMPLATE % (request.nick_name, request.nature)},
-        {"role": "user", "content": request.message},
-    ]
+    # 加载会话文件
+    with open(get_session_file_path(request.session_name), 'r', encoding="utf-8") as f:
+        session_data = json.load(f)
+
+    # 系统提示词
+    messages = [{"role": "system", "content": SYSTEM_PROMPT_TEMPLATE % (request.nick_name, request.nature)}]
+
+    # 读取当前会话历史聊天列表
+    for m in session_data["message"]:
+        messages.append(m)
+
+    # 用户提示词
+    messages.append({"role": "user", "content": request.message})
+
+    print(f'------> 与ai交互messages：{messages}')
 
     response = client.chat.completions.create(
         model="deepseek-flash",
@@ -122,7 +134,20 @@ def chat(request: ChatRequest):
         extra_body={"thinking": {"type": "disabled"}}
     )
 
-    return ApiResponse(message="互AI交互成功", data=response.choices[0].message.content)
+    ai_response_message = response.choices[0].message.content or ""
+
+    # 组装历史聊天列表，存入会话文件的message中
+    messages.append({"role": "assistant", "content": ai_response_message})
+    # 去除系统提示词后，再存
+    messages.pop(0)
+    session_data["message"] = messages
+
+    print(f'------> 存入会话文件的message：{messages}')
+
+    with open(get_session_file_path(request.session_name), "w", encoding="utf-8") as f:
+        json.dump(session_data, f, ensure_ascii=False, indent=2)
+
+    return ApiResponse(message="互AI交互成功", data=ai_response_message)
 
 
 if __name__ == "__main__":
