@@ -2,11 +2,11 @@ import logging
 from datetime import datetime
 import json
 import os
-from tokenize import endpats
 from typing import Any
 from openai import OpenAI
-from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 logging.basicConfig(
     level=logging.INFO,
@@ -197,6 +197,13 @@ def delete_session_by_name(session_name):
 
     os.remove(session_file)
     return ApiResponse(message="删除指定会话成功")
+
+
+# 统一处理异常信息
+@app.exception_handler(Exception)
+def handle_exception(request: Request, exc: Exception):
+    logging.error(f"处理异常, 请求路径: {request.url}, 异常信息: {exc}")
+    return JSONResponse(content={"code": 500, "message": "服务器内部错误"})
 
 
 if __name__ == "__main__":
