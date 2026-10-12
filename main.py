@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 import json
 import os
@@ -7,6 +8,10 @@ from openai import OpenAI
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+)
 app = FastAPI(title="AI智能伴侣", description="一款基于人工智能的情感陪伴应用", version="1.0.0")
 
 # 系统提示词模板
@@ -70,7 +75,7 @@ def get_session_file_path(session_name):
 # 加载伴侣预设模板信息
 @app.get("/api/presets", summary="加载伴侣预设模板信息")
 async def load_presets():
-    print("加载伴侣预设模板信息...")
+    logging.info("加载伴侣预设模板信息...")
     if not os.path.exists(PRESETS_FILE_PATH):
         return ApiResponse(code=404, message="文件不存在", data=None)
     else:
@@ -86,11 +91,11 @@ async def load_presets():
 @app.post("/api/sessions", summary="创建新会话")
 async def create_session(request: CreateSessionRequest):
     # CreateSessionRequest()
-    print("创建新会话", request)
+    logging.info(f"创建新会话: {request}")
 
     # 会话名称
     session_name = generate_session_name()
-    print(session_name)
+    logging.info(session_name)
 
     # 生成会话json
     session_data = {
@@ -108,7 +113,7 @@ async def create_session(request: CreateSessionRequest):
 # 互AI交互
 @app.post("/api/chat", summary="互AI交互")
 def chat(request: ChatRequest):
-    print("互AI交互", request)
+    logging.info(f"互AI交互: {request}")
 
     # 加载会话文件
     with open(get_session_file_path(request.session_name), 'r', encoding="utf-8") as f:
@@ -124,7 +129,7 @@ def chat(request: ChatRequest):
     # 用户提示词
     messages.append({"role": "user", "content": request.message})
 
-    print(f'------> 与ai交互messages：{messages}')
+    logging.info(f'------> 与ai交互messages：{messages}')
 
     response = client.chat.completions.create(
         model="deepseek-flash",
@@ -144,7 +149,7 @@ def chat(request: ChatRequest):
     session_data["nick_name"] = request.nick_name
     session_data["nature"] = request.nature
 
-    print(f'------> 存入会话文件的message：{messages}')
+    logging.info(f'------> 存入会话文件的message：{messages}')
 
     with open(get_session_file_path(request.session_name), "w", encoding="utf-8") as f:
         json.dump(session_data, f, ensure_ascii=False, indent=2)
@@ -171,7 +176,7 @@ def get_session_list():
 # 根据会话名获取会话信息
 @app.get("/api/sessions/{session_name}", summary="根据会话名获取会话信息")
 def get_session_by_name(session_name):
-    print("根据会话名获取会话信息", session_name)
+    logging.info(f"根据会话名获取会话信息: {session_name}"),
     if not os.path.exists(get_session_file_path(session_name)):
         return ApiResponse(message="当时会话不存在，请检查当时名称")
 
@@ -183,7 +188,7 @@ def get_session_by_name(session_name):
 # 删除指定会话
 @app.delete("/api/sessions/{session_name}")
 def delete_session_by_name(session_name):
-    print("根据会话名删除会话信息", session_name)
+    logging.info(f"根据会话名删除会话信息: {session_name}")
 
     session_file = get_session_file_path(session_name)
 
