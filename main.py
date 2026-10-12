@@ -168,6 +168,18 @@ def get_session_list():
     return ApiResponse(message="加载会话列表成功", data=session_list)
 
 
+# 根据会话名获取会话信息
+@app.get("/api/sessions/{session_name}", summary="根据会话名获取会话信息")
+def get_session_by_name(session_name):
+    print("根据会话名获取会话信息", session_name)
+    if not os.path.exists(get_session_file_path(session_name)):
+        return ApiResponse(message="当时会话不存在，请检查当时名称")
+
+    with open(get_session_file_path(session_name), 'r', encoding="utf-8") as f:
+        session_data = json.load(f)
+    return ApiResponse(message="根据会话名获取会话信息成功", data=session_data)
+
+
 if __name__ == "__main__":
     import uvicorn
 
