@@ -58,6 +58,7 @@ uvicorn.log
 *.db
 *.sqlite
 *.sqlite3
+sessions/
 
 # IDE
 .vscode/
