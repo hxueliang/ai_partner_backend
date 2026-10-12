@@ -97,7 +97,7 @@ async def create_session(request: CreateSessionRequest):
         "session_name": session_name,
         "nick_name": request.nick_name,
         "nature": request.nature,
-        "message": []
+        "messages": []
     }
     with open(get_session_file_path(session_name), "w", encoding="utf-8") as f:
         json.dump(session_data, f, ensure_ascii=False, indent=2)
@@ -118,7 +118,7 @@ def chat(request: ChatRequest):
     messages = [{"role": "system", "content": SYSTEM_PROMPT_TEMPLATE % (request.nick_name, request.nature)}]
 
     # 读取当前会话历史聊天列表
-    for m in session_data["message"]:
+    for m in session_data["messages"]:
         messages.append(m)
 
     # 用户提示词
@@ -140,7 +140,7 @@ def chat(request: ChatRequest):
     messages.append({"role": "assistant", "content": ai_response_message})
     # 去除系统提示词后，再存
     messages.pop(0)
-    session_data["message"] = messages
+    session_data["messages"] = messages
     session_data["nick_name"] = request.nick_name
     session_data["nature"] = request.nature
 
