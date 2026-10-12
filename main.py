@@ -180,6 +180,20 @@ def get_session_by_name(session_name):
     return ApiResponse(message="根据会话名获取会话信息成功", data=session_data)
 
 
+# 删除指定会话
+@app.delete("/api/sessions/{session_name}")
+def delete_session_by_name(session_name):
+    print("根据会话名删除会话信息", session_name)
+
+    session_file = get_session_file_path(session_name)
+
+    if not os.path.exists(session_file):
+        return ApiResponse(message="当时会话不存在，请检查当时名称")
+
+    os.remove(session_file)
+    return ApiResponse(message="删除指定会话成功")
+
+
 if __name__ == "__main__":
     import uvicorn
 
