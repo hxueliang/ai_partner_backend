@@ -5,9 +5,10 @@ import os
 from typing import Any
 from openai import OpenAI
 from pydantic import BaseModel
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from db import session_factory, AiPreset
 from fastapi.encoders import jsonable_encoder
 
@@ -75,12 +76,16 @@ def get_session_file_path(session_name):
     return f"sessions/{session_name}.json"
 
 
+# 获取异步session
+async def get_session():
+    session = session_factory()
+    return session
+
+
 # 加载伴侣预设模板信息
 @app.get("/api/presets", summary="加载伴侣预设模板信息")
-async def load_presets():
+async def load_presets(session: AsyncSession = Depends(get_session)):
     logging.info("加载伴侣预设模板信息...")
-
-    session = session_factory()
 
     result = await session.execute(select(AiPreset).order_by(AiPreset.sort_order.asc()))
     result_list = result.scalars().all()
