@@ -79,7 +79,8 @@ def get_session_file_path(session_name):
 # 获取异步session
 async def get_session():
     session = session_factory()
-    return session
+    yield session  # 使用yield代替return暂停函数并返回session，从而实现session的创建与销毁由同一个函数完成
+    await session.close()
 
 
 # 加载伴侣预设模板信息
@@ -90,8 +91,6 @@ async def load_presets(session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(AiPreset).order_by(AiPreset.sort_order.asc()))
     result_list = result.scalars().all()
     presets_list = jsonable_encoder(result_list)  # jsonable_encoder：将对象转为json字符串
-
-    await session.close()
 
     return ApiResponse(code=200, message="获取伴侣预设模板信息成功", data=presets_list)
 
