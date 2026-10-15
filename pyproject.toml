@@ -3,6 +3,8 @@ name = "ai-partner-backend"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "aiomysql>=0.3.2",
+    "cryptography>=50.0.2",
     "fastapi>=0.143.0",
     "openai>=3.29.0",
     "pymysql>=1.2.3",
