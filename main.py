@@ -7,6 +7,9 @@ from openai import OpenAI
 from pydantic import BaseModel
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy import select
+from db import session_factory, AiPreset
+from fastapi.encoders import jsonable_encoder
 
 logging.basicConfig(
     level=logging.INFO,
@@ -76,15 +79,16 @@ def get_session_file_path(session_name):
 @app.get("/api/presets", summary="加载伴侣预设模板信息")
 async def load_presets():
     logging.info("加载伴侣预设模板信息...")
-    if not os.path.exists(PRESETS_FILE_PATH):
-        return ApiResponse(code=404, message="文件不存在", data=None)
-    else:
-        with open(PRESETS_FILE_PATH, "r", encoding="utf-8") as f:
-            presets_list = json.load(f)
 
-        # 排序
-        presets_list.sort(key=lambda x: x["sort_order"])
-        return ApiResponse(code=200, message="获取伴侣预设模板信息成功", data=presets_list)
+    session = session_factory()
+
+    result = await session.execute(select(AiPreset).order_by(AiPreset.sort_order.asc()))
+    result_list = result.scalars().all()
+    presets_list = jsonable_encoder(result_list)  # jsonable_encoder：将对象转为json字符串
+
+    await session.close()
+
+    return ApiResponse(code=200, message="获取伴侣预设模板信息成功", data=presets_list)
 
 
 # 创建新会话
