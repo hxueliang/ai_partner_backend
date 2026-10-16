@@ -79,8 +79,14 @@ def get_session_file_path(session_name):
 # 获取异步session
 async def get_session():
     session = session_factory()
-    yield session  # 使用yield代替return暂停函数并返回session，从而实现session的创建与销毁由同一个函数完成
-    await session.close()
+    try:
+        yield session  # 使用yield代替return暂停函数并返回session，从而实现session的创建与销毁由同一个函数完成
+    except Exception as e:
+        print(f"get_session出错了：{e}")
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
 
 
 # 加载伴侣预设模板信息
