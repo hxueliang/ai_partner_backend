@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from db import session_factory, AiPreset
+from db import session_factory, AiPreset, AiSession
 from fastapi.encoders import jsonable_encoder
 
 logging.basicConfig(
@@ -103,7 +103,7 @@ async def load_presets(session: AsyncSession = Depends(get_session)):
 
 # 创建新会话
 @app.post("/api/sessions", summary="创建新会话")
-async def create_session(request: CreateSessionRequest):
+async def create_session(request: CreateSessionRequest, session: AsyncSession = Depends(get_session)):
     # CreateSessionRequest()
     logging.info(f"创建新会话: {request}")
 
@@ -111,15 +111,14 @@ async def create_session(request: CreateSessionRequest):
     session_name = generate_session_name()
     logging.info(session_name)
 
-    # 生成会话json
-    session_data = {
-        "session_name": session_name,
-        "nick_name": request.nick_name,
-        "nature": request.nature,
-        "messages": []
-    }
-    with open(get_session_file_path(session_name), "w", encoding="utf-8") as f:
-        json.dump(session_data, f, ensure_ascii=False, indent=2)
+    session.add(AiSession(
+        session_name=session_name,
+        nick_name=request.nick_name,
+        nature=request.nature,
+        create_time=datetime.now(),
+        update_time=datetime.now()
+    ))
+    await session.commit()
 
     return ApiResponse(message="创建新会话成功", data=session_name)
 
