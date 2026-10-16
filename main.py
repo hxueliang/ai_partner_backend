@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 import json
 import os
+from email import message
 from typing import Any
 from openai import OpenAI
 from pydantic import BaseModel
@@ -9,7 +10,7 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from db import session_factory, AiPreset, AiSession
+from db import session_factory, AiPreset, AiSession, AiMessage
 from fastapi.encoders import jsonable_encoder
 
 logging.basicConfig(
@@ -184,14 +185,23 @@ async def get_session_list(session: AsyncSession = Depends(get_session)):
 
 # 根据会话名获取会话信息
 @app.get("/api/sessions/{session_name}", summary="根据会话名获取会话信息")
-def get_session_by_name(session_name):
+async def get_session_by_name(session_name, session: AsyncSession = Depends(get_session)):
     logging.info(f"根据会话名获取会话信息: {session_name}"),
-    if not os.path.exists(get_session_file_path(session_name)):
-        return ApiResponse(message="当时会话不存在，请检查当时名称")
 
-    with open(get_session_file_path(session_name), 'r', encoding="utf-8") as f:
-        session_data = json.load(f)
-    return ApiResponse(message="根据会话名获取会话信息成功", data=session_data)
+    result = await session.execute(select(AiSession).where(session_name == AiSession.session_name))
+    current_session: AiSession = result.scalars().one()
+
+    result = await session.execute(select(AiMessage).where(AiMessage.session_id == current_session.id))
+    current_messages = result.scalars().all()
+
+    session_data = {
+        "session_name": session_name,
+        "nick_name": current_session.nick_name,
+        "nature": current_session.nature,
+        "messages": [{"role": message.role, "content": message.content} for message in current_messages]
+    }
+
+    return ApiResponse(messaenge="根据会话名获取会话信息成功", data=session_data)
 
 
 # 删除指定会话
