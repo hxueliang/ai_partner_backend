@@ -126,26 +126,28 @@ async def create_session(request: CreateSessionRequest, session: AsyncSession = 
 
 # 互AI交互
 @app.post("/api/chat", summary="互AI交互")
-def chat(request: ChatRequest):
+async def chat(request: ChatRequest, session: AsyncSession = Depends(get_session)):
     logging.info(f"互AI交互: {request}")
 
-    # 加载会话文件
-    with open(get_session_file_path(request.session_name), 'r', encoding="utf-8") as f:
-        session_data = json.load(f)
+    result = await session.execute(select(AiSession).where(AiSession.session_name == request.session_name))
+    current_session = result.scalars().one()
+
+    result = await session.execute(select(AiMessage).where(AiMessage.session_id == current_session.id))
+    current_messages = result.scalars().all()
 
     # 系统提示词
     messages = [{"role": "system", "content": SYSTEM_PROMPT_TEMPLATE % (request.nick_name, request.nature)}]
 
     # 读取当前会话历史聊天列表
-    for m in session_data["messages"]:
-        messages.append(m)
+    for m in current_messages:
+        messages.append({"role": m.role, "content": m.content})
 
     # 用户提示词
     messages.append({"role": "user", "content": request.message})
 
     logging.info(f'------> 与ai交互messages：{messages}')
 
-    response = client.chat.completions.create(
+    response = client.chat.completions.create(  # type: ignore
         model="deepseek-flash",
         messages=messages,
         stream=False,
@@ -155,18 +157,23 @@ def chat(request: ChatRequest):
 
     ai_response_message = response.choices[0].message.content or ""
 
-    # 组装历史聊天列表，存入会话文件的message中
-    messages.append({"role": "assistant", "content": ai_response_message})
-    # 去除系统提示词后，再存
-    messages.pop(0)
-    session_data["messages"] = messages
-    session_data["nick_name"] = request.nick_name
-    session_data["nature"] = request.nature
+    session.add(AiMessage(
+        session_id=current_session.id,
+        role='user',
+        content=request.message,
+        create_time=datetime.now()
+    ))
+    session.add(AiMessage(
+        session_id=current_session.id,
+        role='assistant',
+        content=ai_response_message,
+        create_time=datetime.now()
+    ))
 
-    logging.info(f'------> 存入会话文件的message：{messages}')
+    current_session.nick_name = request.nick_name
+    current_session.nature = request.nature
 
-    with open(get_session_file_path(request.session_name), "w", encoding="utf-8") as f:
-        json.dump(session_data, f, ensure_ascii=False, indent=2)
+    await session.commit()
 
     return ApiResponse(message="互AI交互成功", data=ai_response_message)
 
