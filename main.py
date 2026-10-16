@@ -8,7 +8,7 @@ from openai import OpenAI
 from pydantic import BaseModel
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from db import session_factory, AiPreset, AiSession, AiMessage
 from fastapi.encoders import jsonable_encoder
@@ -206,15 +206,19 @@ async def get_session_by_name(session_name, session: AsyncSession = Depends(get_
 
 # 删除指定会话
 @app.delete("/api/sessions/{session_name}")
-def delete_session_by_name(session_name):
+async def delete_session_by_name(session_name, session: AsyncSession = Depends(get_session)):
     logging.info(f"根据会话名删除会话信息: {session_name}")
 
-    session_file = get_session_file_path(session_name)
+    # 查询需要删除的session
+    result = await session.execute(select(AiSession).where(AiSession.session_name == session_name))
+    delete_session = result.scalars().one()
+    # 删除session
+    await session.execute(delete(AiSession).where(AiSession.session_name == session_name))
+    # 删除的session对应有messages
+    await session.execute(delete(AiMessage).where(AiMessage.session_id == delete_session.id))
 
-    if not os.path.exists(session_file):
-        return ApiResponse(message="当时会话不存在，请检查当时名称")
+    await session.commit()
 
-    os.remove(session_file)
     return ApiResponse(message="删除指定会话成功")
 
 
