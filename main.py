@@ -1,15 +1,15 @@
 import logging
 from datetime import datetime
 import os
-from typing import Any
 from openai import OpenAI
-from pydantic import BaseModel
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import AiPreset, AiSession, AiMessage, get_session
 from fastapi.encoders import jsonable_encoder
+
+from app.schemas import ApiResponse, CreateSessionRequest, ChatRequest
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,28 +34,6 @@ SYSTEM_PROMPT_TEMPLATE = """你叫 %s，现在是用户的真实伴侣，请完�
 
 # openAI客户端
 client = OpenAI(api_key=os.environ.get('DEEPSEEK_API_KEY'), base_url="https://api.deepseek.com")
-
-
-# pydantic 模型
-# 返回类
-class ApiResponse(BaseModel):
-    code: int = 200
-    message: str = "操作成功"
-    data: Any = None
-
-
-# 创建会话请求参数
-class CreateSessionRequest(BaseModel):
-    nick_name: str
-    nature: str
-
-
-# 与AI交互请求参数
-class ChatRequest(BaseModel):
-    nick_name: str
-    nature: str
-    session_name: str
-    message: str
 
 
 # 公共函数
