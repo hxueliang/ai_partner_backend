@@ -1,11 +1,11 @@
 import logging
 from datetime import datetime
-import os
-from openai import OpenAI
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.ai import client, SYSTEM_PROMPT_TEMPLATE
 from app.db import AiPreset, AiSession, AiMessage, get_session
 from fastapi.encoders import jsonable_encoder
 
@@ -17,24 +17,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
 )
 app = FastAPI(title="AI智能伴侣", description="一款基于人工智能的情感陪伴应用", version="1.0.0")
-
-# 系统提示词模板
-SYSTEM_PROMPT_TEMPLATE = """你叫 %s，现在是用户的真实伴侣，请完全代入伴侣角色。
-    规则：
-        1. 每次只回1条消息
-        2. 禁止任何场景或状态描述性文字
-        3. 匹配用户的语言
-        4. 回复简短，像微信聊天一样
-        5. 有需要的话可以用❤️🌸等emoji表情
-        6. 用符合伴侣性格的方式对话
-        7. 回复的内容, 要充分体现伴侣的性格特征
-    伴侣性格：
-        - %s
-    你必须严格遵守上述规则来回复用户。
-    """
-
-# openAI客户端
-client = OpenAI(api_key=os.environ.get('DEEPSEEK_API_KEY'), base_url="https://api.deepseek.com")
 
 
 # 加载伴侣预设模板信息
