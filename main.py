@@ -172,16 +172,12 @@ def chat(request: ChatRequest):
 
 # 加载会话列表
 @app.get("/api/sessions")
-def get_session_list():
+async def get_session_list(session: AsyncSession = Depends(get_session)):
     if not os.path.exists(SESSION_DIR):
         return ApiResponse(message="加载会话列表成功", data=[])
 
-    session_list = []
-
-    for filename in os.listdir(SESSION_DIR):
-        session_list.append(filename[:-5])
-
-    session_list.sort(reverse=True)
+    result = await session.execute(select(AiSession.session_name).order_by(AiSession.update_time.desc()))
+    session_list = result.scalars().all()
 
     return ApiResponse(message="加载会话列表成功", data=session_list)
 
