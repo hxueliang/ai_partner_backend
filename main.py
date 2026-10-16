@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from db import session_factory, AiPreset, AiSession, AiMessage
+from app.db import AiPreset, AiSession, AiMessage, get_session
 from fastapi.encoders import jsonable_encoder
 
 logging.basicConfig(
@@ -62,19 +62,6 @@ class ChatRequest(BaseModel):
 # 生成会话名
 def generate_session_name():
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-
-# 获取异步session
-async def get_session():
-    session = session_factory()
-    try:
-        yield session  # 使用yield代替return暂停函数并返回session，从而实现session的创建与销毁由同一个函数完成
-    except Exception as e:
-        print(f"get_session出错了：{e}")
-        await session.rollback()
-        raise
-    finally:
-        await session.close()
 
 
 # 加载伴侣预设模板信息
