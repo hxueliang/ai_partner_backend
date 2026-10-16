@@ -10,6 +10,7 @@ from app.db import AiPreset, AiSession, AiMessage, get_session
 from fastapi.encoders import jsonable_encoder
 
 from app.schemas import ApiResponse, CreateSessionRequest, ChatRequest
+from app.utils import generate_session_name
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,12 +35,6 @@ SYSTEM_PROMPT_TEMPLATE = """你叫 %s，现在是用户的真实伴侣，请完�
 
 # openAI客户端
 client = OpenAI(api_key=os.environ.get('DEEPSEEK_API_KEY'), base_url="https://api.deepseek.com")
-
-
-# 公共函数
-# 生成会话名
-def generate_session_name():
-    return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 # 加载伴侣预设模板信息
