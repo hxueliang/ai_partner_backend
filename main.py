@@ -1,8 +1,6 @@
 import logging
 from datetime import datetime
-import json
 import os
-from email import message
 from typing import Any
 from openai import OpenAI
 from pydantic import BaseModel
@@ -36,12 +34,6 @@ SYSTEM_PROMPT_TEMPLATE = """你叫 %s，现在是用户的真实伴侣，请完�
 
 # openAI客户端
 client = OpenAI(api_key=os.environ.get('DEEPSEEK_API_KEY'), base_url="https://api.deepseek.com")
-#
-PRESETS_FILE_PATH = "data/companion_presets.json"
-SESSION_DIR = "sessions"
-
-if not os.path.exists(SESSION_DIR):
-    os.mkdir(SESSION_DIR)
 
 
 # pydantic 模型
@@ -70,11 +62,6 @@ class ChatRequest(BaseModel):
 # 生成会话名
 def generate_session_name():
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-
-# 根据会话名获取会话文件路径
-def get_session_file_path(session_name):
-    return f"sessions/{session_name}.json"
 
 
 # 获取异步session
@@ -181,9 +168,6 @@ async def chat(request: ChatRequest, session: AsyncSession = Depends(get_session
 # 加载会话列表
 @app.get("/api/sessions")
 async def get_session_list(session: AsyncSession = Depends(get_session)):
-    if not os.path.exists(SESSION_DIR):
-        return ApiResponse(message="加载会话列表成功", data=[])
-
     result = await session.execute(select(AiSession.session_name).order_by(AiSession.update_time.desc()))
     session_list = result.scalars().all()
 
