@@ -1,13 +1,33 @@
 import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+
+from app.db import init_db, close_db
 from app.routers import router_presets, router_sessions, router_chat
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
 )
-app = FastAPI(title="AI智能伴侣", description="一款基于人工智能的情感陪伴应用", version="1.0.0")
+
+
+@asynccontextmanager
+async def start_and_end(app: FastAPI):
+    logging.info("项目启动")
+    await init_db()
+    yield
+    await close_db()
+    logging.info("项目关闭")
+
+
+app = FastAPI(
+    title="AI智能伴侣",
+    description="一款基于人工智能的情感陪伴应用",
+    version="1.0.0",
+    lifespan=start_and_end,
+)
 
 app.include_router(router_presets)
 app.include_router(router_sessions)
