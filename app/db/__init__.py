@@ -1,5 +1,5 @@
-from .models import session_factory, get_session, init_db, close_db
-from .database import AiPreset, AiSession, AiMessage
+from .database import session_factory, get_session, init_db, close_db
+from .models import AiPreset, AiSession, AiMessage
 
 __all__ = [
     "session_factory",
